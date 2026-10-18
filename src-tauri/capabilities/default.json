@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Permissions for all application windows",
+  "windows": ["*"],
+  "permissions": [
+    "core:default",
+    "opener:default",
+    "clipboard-manager:default",
+    "global-shortcut:default"
+  ]
+}
