@@ -540,7 +540,7 @@ async fn do_in_place_translate(app: AppHandle) {
     // 步骤 1：先检查用户是否已经手动划选了文字（发送 Ctrl+C 试探复制选区）
     // 划选替换是最安全、最精准的模式，100% 绝不波及输入框外部任何元素！
     windows_api::send_copy_combo();
-    tokio::time::sleep(Duration::from_millis(30)).await;
+    tokio::time::sleep(Duration::from_millis(35)).await;
 
     let mut original_text = String::new();
     if let Some(t) = read_clipboard_change(&app, clipboard_before.as_deref()) {
@@ -549,38 +549,60 @@ async fn do_in_place_translate(app: AppHandle) {
     }
 
     // 步骤 2：如果用户打完字未手动划选（打完字直接按热键）：
-    // 自动全选输入框：Ctrl + A -> 自动复制：Ctrl + C！彻底解放双手，无需手动全选！
+    // 自动全选输入框：Ctrl + A -> 自动复制：Ctrl + C！采用【哨兵探针】机制，绝不误判！
     if original_text.is_empty() {
         if config.auto_select_all {
             log_to_ui(&app, "⚡ [全自动提取] 正在自动全选当前输入框文字...");
             windows_api::release_modifier_keys();
 
+            // 写入唯一随机探针哨兵：用来100%精准检验 Ctrl+C 是否从输入框复制到了真实文字
+            let probe_sentinel = format!(
+                "__CHATMORPH_PROBE_{}__",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis()
+            );
+            let _ = app.clipboard().write_text(&probe_sentinel);
+            tokio::time::sleep(Duration::from_millis(15)).await;
+
+            // 1. 发送 Ctrl + A 全选（等待 50ms，给自绘窗口与游戏足够的消息响应时间）
             windows_api::send_select_all_combo();
-            tokio::time::sleep(Duration::from_millis(25)).await;
+            tokio::time::sleep(Duration::from_millis(50)).await;
 
+            // 2. 发送 Ctrl + C 复制
             windows_api::send_copy_combo();
-            tokio::time::sleep(Duration::from_millis(35)).await;
+            tokio::time::sleep(Duration::from_millis(50)).await;
 
-            // 循环尝试读取剪贴板（最多等 120ms）
-            for _ in 0..8 {
-                if let Some(t) = read_clipboard_change(&app, clipboard_before.as_deref()) {
-                    original_text = t;
-                    break;
+            // 3. 循环轮询检测剪贴板是否被输入框文字覆盖（最多等 180ms）
+            for _ in 0..9 {
+                if let Ok(txt) = app.clipboard().read_text() {
+                    let trimmed = txt.trim();
+                    // 只要当前剪贴板不为空，且不再是我们的探针哨兵，就说明 100% 复制到了输入框内容！
+                    if !trimmed.is_empty() && trimmed != probe_sentinel {
+                        original_text = trimmed.to_string();
+                        break;
+                    }
                 }
-                tokio::time::sleep(Duration::from_millis(15)).await;
+                tokio::time::sleep(Duration::from_millis(20)).await;
             }
 
             // 安全防线：如果提取出的内容异常过大（误触长篇网页文章 > 300字），立即撤销选区
             if original_text.chars().count() > 300 || original_text.lines().count() > 6 {
                 log_to_ui(&app, "⚠️ [安全拦截] 选区超出单输入框范围，已自动取消全选保护！");
                 windows_api::clear_selection_by_arrow_key();
+                restore_clipboard_text(&app, &clipboard_before).await;
                 return;
             }
         }
     }
 
     if original_text.is_empty() {
-        log_to_ui(&app, "⚠️ [提取未获取到文本] 未在输入框内获取到内容！");
+        log_to_ui(
+            &app,
+            "⚠️ [提取未获取到文本] 未获取到内容：请确保已在聊天框打字且鼠标光标点在输入框内！",
+        );
+        restore_clipboard_text(&app, &clipboard_before).await;
         return;
     }
 

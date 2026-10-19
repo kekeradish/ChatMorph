@@ -104,28 +104,28 @@ pub fn wait_for_modifiers_released() {
     }
 }
 
-/// 毫秒级极速模拟复合快捷键（压减至 8~10ms 黄金响应周期，比之前提速 300%）
+/// 毫秒级稳健模拟复合快捷键（12~15ms 稳健周期，确保各类自绘与游戏窗口消息泵可靠接收）
 pub fn send_key_combo(modifier: VIRTUAL_KEY, key: VIRTUAL_KEY) {
     unsafe {
         // 1. Modifier down
         let mut mod_down = [create_key_input(modifier, false)];
         SendInput(&mut mod_down, std::mem::size_of::<INPUT>() as i32);
-        thread::sleep(Duration::from_millis(8));
+        thread::sleep(Duration::from_millis(12));
 
         // 2. Key down
         let mut key_down = [create_key_input(key, false)];
         SendInput(&mut key_down, std::mem::size_of::<INPUT>() as i32);
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_millis(16));
 
         // 3. Key up
         let mut key_up = [create_key_input(key, true)];
         SendInput(&mut key_up, std::mem::size_of::<INPUT>() as i32);
-        thread::sleep(Duration::from_millis(8));
+        thread::sleep(Duration::from_millis(12));
 
         // 4. Modifier up
         let mut mod_up = [create_key_input(modifier, true)];
         SendInput(&mut mod_up, std::mem::size_of::<INPUT>() as i32);
-        thread::sleep(Duration::from_millis(8));
+        thread::sleep(Duration::from_millis(12));
     }
 }
 
