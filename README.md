@@ -2,6 +2,9 @@
 
 > 极速 · 原生 · 零封号 · 打完字直接按键原地变身外语
 
+[![Release](https://img.shields.io/github/v/release/kekeradish/ChatMorph?label=最新测试版&color=brightgreen)](https://github.com/kekeradish/ChatMorph/releases/tag/v0.1.0-beta)
+[![Download](https://img.shields.io/badge/立即下载-v0.1.0测试版-blue)](https://github.com/kekeradish/ChatMorph/releases/tag/v0.1.0-beta)
+
 基于 **Tauri v2 + Rust + Vue 3 (TypeScript)** 打造的极轻量、毫秒级响应、零封号风险的桌面端聊天翻译工具。
 
 专为 **PC 竞技网游（LoL、CS2、Apex、Valorant、DOTA2、瓦罗兰特等）** 与 **桌面社交软件（微信、QQ、Discord、Telegram、Twitter/X 等）** 量身定制。
