@@ -11,6 +11,15 @@
 
 ---
 
+## 📥 客户端下载
+
+| 版本类型 | 文件名 | 体积 | 特点说明 | 一键下载链接 |
+| :--- | :--- | :--- | :--- | :--- |
+| **标准安装包（推荐）** | `ChatMorph_0.1.0_x64-setup.exe` | **2.0 MB** | 标准 Windows 安装向导，自动生成桌面图标与开始菜单项 | [👉 点击下载安装包](https://github.com/kekeradish/ChatMorph/releases/download/v0.1.0-beta/ChatMorph_0.1.0_x64-setup.exe) |
+| **绿色便携单文件** | `ChatMorph_v0.1.0_portable.exe` | **6.2 MB** | 免安装，解压/双击直接运行，可随身放 U 盘 | [👉 点击下载免安装版](https://github.com/kekeradish/ChatMorph/releases/download/v0.1.0-beta/ChatMorph_v0.1.0_portable.exe) |
+
+---
+
 ## ✨ 核心特性
 
 1. **原地无感变身（In-Place Morphing）**：
