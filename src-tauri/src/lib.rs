@@ -8,13 +8,18 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use tauri::menu::{Menu, MenuItem};
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_clipboard_manager::ClipboardExt;
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, Shortcut, ShortcutState};
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
 use cache::TranslationCache;
 use screen_capture::{capture_region_if_changed, CaptureRegion};
-use translator::{TranslationConfig, Translator};
+use translator::{sanitize_trailing_punct, TranslationConfig, Translator};
 
 /// 某个窗口连续失败到这个次数后，就认定它不支持 UIA，以后直接跳过（省几十~几百毫秒）
 const UIA_FAIL_THRESHOLD: u32 = 2;
@@ -184,7 +189,8 @@ async fn translate(
     };
     // 走缓存：配置页反复点"立即翻译"同一句时不再重复烧钱
     let (result, _cached) = translate_with_cache(&app, &text, &config).await?;
-    Ok(result)
+    let sanitized = sanitize_trailing_punct(&result, config.keep_trailing_punct);
+    Ok(sanitized)
 }
 
 /// 配置页"测试连接"：用当前配置真实请求一次，把失败原因原样返回给 UI
@@ -234,11 +240,69 @@ fn get_config(state: State<'_, AppState>) -> TranslationConfig {
 }
 
 #[tauri::command]
+fn set_autostart(enable: bool) -> Result<bool, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let current_exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        let exe_path = current_exe.to_string_lossy().to_string();
+
+        if enable {
+            let cmd = format!(
+                "reg add \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /v ChatMorph /t REG_SZ /d \"\\\"{}\\\"\" /f",
+                exe_path
+            );
+            let output = std::process::Command::new("cmd")
+                .args(["/C", &cmd])
+                .creation_flags(0x08000000)
+                .output()
+                .map_err(|e| format!("写入自启动注册表失败: {e}"))?;
+            if output.status.success() {
+                Ok(true)
+            } else {
+                Err(String::from_utf8_lossy(&output.stderr).to_string())
+            }
+        } else {
+            let _ = std::process::Command::new("cmd")
+                .args(["/C", "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /v ChatMorph /f"])
+                .creation_flags(0x08000000)
+                .output();
+            Ok(false)
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        Ok(false)
+    }
+}
+
+#[tauri::command]
+fn is_autostart_enabled() -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        let output = std::process::Command::new("cmd")
+            .args(["/C", "reg query \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /v ChatMorph"])
+            .creation_flags(0x08000000)
+            .output();
+        match output {
+            Ok(out) => out.status.success(),
+            Err(_) => false,
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        false
+    }
+}
+
+#[tauri::command]
 fn save_config(
     app: AppHandle,
     new_config: TranslationConfig,
     state: State<'_, AppState>,
 ) -> Result<(), String> {
+    // 联动设置开机自启动
+    let _ = set_autostart(new_config.autostart);
+
     // 先落盘再更新内存，保证重启后配置不丢
     persist_config(&app, &new_config)?;
     let mut lock = state.config.lock().map_err(|_| "配置锁异常".to_string())?;
@@ -530,7 +594,8 @@ async fn do_in_place_translate(app: AppHandle) {
             if cached {
                 log_to_ui(&app, "⚡ [缓存命中] 这句话之前翻过，直接复用译文（0ms）");
             }
-            log_to_ui(&app, &format!("✨ [翻译成功] 结果: \"{}\"", translated));
+            let final_translated = sanitize_trailing_punct(&translated, config.keep_trailing_punct);
+            log_to_ui(&app, &format!("✨ [翻译成功] 结果: \"{}\"", final_translated));
 
             // 步骤 4 之前先确认真没跑偏：整条链路已经过了一秒多
             if !foreground_unchanged(hwnd) {
@@ -539,7 +604,7 @@ async fn do_in_place_translate(app: AppHandle) {
             }
 
             // 步骤 4：将译文写回剪贴板并模拟 Ctrl + V 原地覆盖
-            if let Err(e) = app.clipboard().write_text(&translated) {
+            if let Err(e) = app.clipboard().write_text(&final_translated) {
                 log_to_ui(
                     &app,
                     &format!("❌ [剪贴板写入失败] {} —— 已中止，避免粘贴出上一次的旧内容", e),
@@ -630,18 +695,80 @@ pub fn run() {
             test_in_place_after_delay,
             set_hud_click_through,
             check_chat_roi,
+            set_autostart,
+            is_autostart_enabled,
         ])
+        .on_window_event(|window, event| {
+            // 点右上角 X 窗口不退出，而是隐藏到后台，保持全局热键和翻译常驻
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .setup(|app| {
-            // 启动时读取已落盘的配置（API Key / 模型 / 目标语言 / 热键）
+            // 启动时读取已落盘的配置（API Key / 模型 / 目标语言 / 热键 / 开机自启等）
             let handle = app.handle().clone();
             let cfg = load_config(&handle).unwrap_or_default();
             let hotkey = cfg.hotkey.clone();
+            let autostart_cfg = cfg.autostart;
             {
                 let state = app.state::<AppState>();
                 if let Ok(mut lock) = state.config.lock() {
                     *lock = cfg;
                 }
             }
+
+            // 同步一次开机自启动设置（如果配置为 true，则确保注册表已指向当前 exe）
+            if autostart_cfg {
+                let _ = set_autostart(true);
+            }
+
+            // 创建系统托盘图标与右键菜单
+            let show_item = MenuItem::with_id(app, "show", "显示主窗口", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "退出微语", true, None::<&str>)?;
+            let tray_menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            let mut tray_builder = TrayIconBuilder::new()
+                .menu(&tray_menu)
+                .tooltip("微语 (ChatMorph) - 原生聊天翻译器 (后台运行中)")
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "show" => {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.unminimize();
+                            let _ = window.set_focus();
+                        }
+                    }
+                    "quit" => {
+                        app.exit(0);
+                    }
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            if window.is_visible().unwrap_or(false) {
+                                let _ = window.hide();
+                            } else {
+                                let _ = window.show();
+                                let _ = window.unminimize();
+                                let _ = window.set_focus();
+                            }
+                        }
+                    }
+                });
+
+            if let Some(icon) = app.default_window_icon() {
+                tray_builder = tray_builder.icon(icon.clone());
+            }
+            let _tray = tray_builder.build(app)?;
 
             // 按配置里保存的热键注册；失败才回退默认值
             let mut registered = false;

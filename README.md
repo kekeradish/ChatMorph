@@ -2,8 +2,8 @@
 
 > 极速 · 原生 · 零封号 · 打完字直接按键原地变身外语
 
-[![Release](https://img.shields.io/github/v/release/kekeradish/ChatMorph?label=最新测试版&color=brightgreen)](https://github.com/kekeradish/ChatMorph/releases/tag/v0.1.0-beta)
-[![Download](https://img.shields.io/badge/立即下载-v0.1.0测试版-blue)](https://github.com/kekeradish/ChatMorph/releases/tag/v0.1.0-beta)
+[![Release](https://img.shields.io/github/v/release/kekeradish/ChatMorph?label=最新版本&color=brightgreen)](https://github.com/kekeradish/ChatMorph/releases/tag/v0.2.0-beta)
+[![Download](https://img.shields.io/badge/立即下载-v0.2.0测试版-blue)](https://github.com/kekeradish/ChatMorph/releases/tag/v0.2.0-beta)
 
 基于 **Tauri v2 + Rust + Vue 3 (TypeScript)** 打造的极轻量、毫秒级响应、零封号风险的桌面端聊天翻译工具。
 
@@ -11,12 +11,12 @@
 
 ---
 
-## 📥 客户端下载
+## 📥 客户端下载 (v0.2.0 测试版)
 
 | 版本类型 | 文件名 | 体积 | 特点说明 | 一键下载链接 |
 | :--- | :--- | :--- | :--- | :--- |
-| **标准安装包（推荐）** | `ChatMorph_0.1.0_x64-setup.exe` | **2.0 MB** | 标准 Windows 安装向导，自动生成桌面图标与开始菜单项 | [👉 点击下载安装包](https://github.com/kekeradish/ChatMorph/releases/download/v0.1.0-beta/ChatMorph_0.1.0_x64-setup.exe) |
-| **绿色便携单文件** | `ChatMorph_v0.1.0_portable.exe` | **6.2 MB** | 免安装，解压/双击直接运行，可随身放 U 盘 | [👉 点击下载免安装版](https://github.com/kekeradish/ChatMorph/releases/download/v0.1.0-beta/ChatMorph_v0.1.0_portable.exe) |
+| **标准安装包（推荐）** | `ChatMorph_0.2.0_x64-setup.exe` | **2.0 MB** | 标准 Windows 安装向导，自动生成桌面图标与开始菜单项 | [👉 点击下载安装包](https://github.com/kekeradish/ChatMorph/releases/download/v0.2.0-beta/ChatMorph_0.2.0_x64-setup.exe) |
+| **绿色便携单文件** | `ChatMorph_v0.2.0_portable.exe` | **6.2 MB** | 免安装，解压/双击直接运行，可随身放 U 盘 | [👉 点击下载免安装版](https://github.com/kekeradish/ChatMorph/releases/download/v0.2.0-beta/ChatMorph_v0.2.0_portable.exe) |
 
 ---
 
@@ -25,12 +25,19 @@
 1. **原地无感变身（In-Place Morphing）**：
    - 打完中文后，**无需手动划选或全选文本**，直接按下默认热键 `Alt + ~`（支持自定义为 `Alt + A` 等）；
    - 底层原生按键流水线自动秒级提取输入框文本、调用翻译引擎，并在当前输入框瞬间覆盖更新为地道外语！
-2. **绝对安全零封号（Non-invasive & Anti-Cheat Safe）**：
+2. **点 ❌ 最小化后台常驻 & 托盘控制**：
+   - 点击主界面右上角“X”不会退出，而是静默最小化到后台常驻，全局热键随时可用；
+   - 任务栏托盘左键点击切换窗口显隐，右键菜单提供【显示主窗口】与【退出微语】。
+3. **开机自启动支持**：
+   - 一键开启开机自启动，电脑开机后自动在后台静默就绪，随时打字随时变身。
+4. **结尾标点符号自由开关**：
+   - 支持开启/关闭句末标点剥离；默认自动剥离末尾的句号、感叹号，契合随性利落的竞技交流习惯。
+5. **绝对安全零封号（Non-invasive & Anti-Cheat Safe）**：
    - 100% 外部原生模拟交互，绝不向游戏注入 DLL，不读取游戏内存，彻底杜绝 VAC / EAC / Vanguard / BattlEye 反作弊封禁风险。
-3. **极速时钟与静音体验**：
+6. **极速时钟与静音体验**：
    - 优化 Windows 硬件消息事件队列，按键时延压缩至 8~10ms，全流程响应仅需 70~90ms；
    - 移除所有系统提示蜂鸣音，安静无打扰。
-4. **淡色系与深色系双主题自由切换**：
+7. **淡色系与深色系双主题自由切换**：
    - 顶部状态栏一键在 **🌙 深色系**（黑金科技电竞感）与 **☀️ 淡色系**（雅致清爽米白纸面感）之间随心切换，支持本地持久化记忆。
 5. **竞技网游黑话与缩写专属增强（Gaming Slang Engine）**：
    - 内置游戏报点与电竞俚语 Prompt（如：开大->`Ult`，抓人->`Gank`，守高地->`Defend HG`，别送->`Stop feeding`，发把大狙->`Drop me an AWP`，残血->`Low HP/one shot`）。

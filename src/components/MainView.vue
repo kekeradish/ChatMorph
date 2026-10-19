@@ -4,10 +4,11 @@
     <header class="header">
       <div class="brand">
         <div class="logo-badge">⚡</div>
-        <div>
+        <div class="brand-title-row">
           <h1>微语 (ChatMorph)</h1>
-          <p class="sub">原生级游戏聊天与社交原地变身翻译引擎</p>
+          <span class="version-tag">v0.2.0 测试版</span>
         </div>
+        <p class="sub">原生级游戏聊天与社交原地变身翻译引擎</p>
       </div>
       <div class="header-status">
         <button class="theme-btn" @click="toggleTheme" :title="theme === 'dark' ? '点击切换为清新淡色系' : '点击切换为暗夜深色系'">
@@ -247,6 +248,22 @@
             </div>
             <input type="checkbox" v-model="config.auto_send" />
           </div>
+
+          <div class="form-item switch-item">
+            <div>
+              <span class="switch-title">🔤 保留结尾标点符号</span>
+              <p class="switch-sub">开启时保留译文末尾句号/感叹号；关闭时自动去除句末标点，更契合游戏聊天随性习惯。</p>
+            </div>
+            <input type="checkbox" v-model="config.keep_trailing_punct" />
+          </div>
+
+          <div class="form-item switch-item">
+            <div>
+              <span class="switch-title">⚙️ 开机自启动 (后台常驻)</span>
+              <p class="switch-sub">开机自动在后台运行微语，随时随地打字按热键即变身（点右上角 X 同样最小化到托盘）。</p>
+            </div>
+            <input type="checkbox" v-model="config.autostart" />
+          </div>
         </div>
       </section>
     </main>
@@ -273,6 +290,8 @@ interface TranslationConfig {
   hotkey: string;
   auto_select_all: boolean;
   auto_send: boolean;
+  keep_trailing_punct: boolean;
+  autostart: boolean;
 }
 
 const config = ref<TranslationConfig>({
@@ -285,6 +304,8 @@ const config = ref<TranslationConfig>({
   hotkey: 'Alt+Backquote',
   auto_select_all: true,
   auto_send: false,
+  keep_trailing_punct: false,
+  autostart: false,
 });
 
 // 每个服务商各自的 Base / Key / 模型，切换回来时原样恢复，不再被覆盖清空
@@ -313,7 +334,7 @@ const logs = ref<string[]>([]);
 const logBodyRef = ref<HTMLElement | null>(null);
 
 const showApiKey = ref(false);
-const testInput = ref('别送了，先守住高地，等大招好了再打大龙');
+const testInput = ref('');
 const testOutput = ref('');
 // 记录这条结果是按哪个目标语言翻出来的，避免切了语言之后标签跟着变、看起来像数据错乱
 const resultLang = ref('English');
@@ -786,6 +807,23 @@ const copyResult = () => {
   justify-content: center;
   box-shadow: 0 0 15px rgba(14, 165, 233, 0.35);
   color: white;
+}
+
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: rgba(14, 165, 233, 0.15);
+  color: #0284c7;
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  letter-spacing: 0.2px;
 }
 
 .brand h1 {

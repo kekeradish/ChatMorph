@@ -22,6 +22,27 @@ pub struct TranslationConfig {
     pub hotkey: String,       // 全局快捷键，默认 "Alt+Backquote" (即 Alt + ~，ESC 正下方按键)
     pub auto_select_all: bool,// 快捷键触发时是否自动全选输入框
     pub auto_send: bool,      // 替换后是否自动回车发出
+    #[serde(default)]
+    pub keep_trailing_punct: bool,// 是否保留结尾标点符号（默认 false：自动剥离句末句号标点，适配聊天）
+    #[serde(default)]
+    pub autostart: bool,          // 开机自启动
+}
+
+/// 根据配置剥离结尾标点（如句号、感叹号、问号等）
+pub fn sanitize_trailing_punct(text: &str, keep_trailing_punct: bool) -> String {
+    let trimmed = text.trim();
+    if keep_trailing_punct {
+        return trimmed.to_string();
+    }
+    let mut s = trimmed.to_string();
+    while let Some(ch) = s.chars().last() {
+        if ch == '.' || ch == '。' || ch == '!' || ch == '！' || ch == '?' || ch == '？' || ch == ',' || ch == '，' || ch == ';' || ch == '；' {
+            s.pop();
+        } else {
+            break;
+        }
+    }
+    s.trim().to_string()
 }
 
 impl TranslationConfig {
@@ -49,6 +70,8 @@ impl Default for TranslationConfig {
             hotkey: "Alt+Backquote".to_string(),
             auto_select_all: true,
             auto_send: false,
+            keep_trailing_punct: false,
+            autostart: false,
         }
     }
 }
